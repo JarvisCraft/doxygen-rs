@@ -35,12 +35,9 @@ fn parse_items(input: Vec<LexItem>) -> Result<Vec<GrammarItem>, ParseError> {
     let mut param_iter_skip_count = 0;
 
     for item in input.windows(4) {
-        let current = &item[0];
-        let next = item.get(1);
-
-        match current {
+        match &item[0] {
             LexItem::At(_) => {
-                if let Some(next) = next {
+                if let Some(next) = item.get(1) {
                     match next {
                         LexItem::Paren(v) => match *v {
                             OPEN_PAREN => grammar_items.push(GrammarItem::GroupStart),
@@ -75,9 +72,8 @@ fn parse_items(input: Vec<LexItem>) -> Result<Vec<GrammarItem>, ParseError> {
                                 }
 
                                 params = match item.get(3) {
-                                    None => vec![],
                                     Some(LexItem::Word(v)) => vec![v.into()],
-                                    Some(_) => vec![],
+                                    _ => vec![],
                                 };
 
                                 content = "param"
@@ -89,9 +85,8 @@ fn parse_items(input: Vec<LexItem>) -> Result<Vec<GrammarItem>, ParseError> {
                                     | "class" | "category" | "concept" | "enum" | "example"
                                     | "extends" | "file" | "sa" | "see" | "retval"
                                     | "exception" | "throw" | "throws" => match item.get(3) {
-                                        None => vec![],
                                         Some(LexItem::Word(v)) => vec![v.into()],
-                                        Some(_) => vec![],
+                                        _ => vec![],
                                     },
                                     _ => vec![],
                                 };
