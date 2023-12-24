@@ -42,20 +42,22 @@ pub fn rustdoc(input: String) -> Result<String, ParseError> {
 
                 str
             }
-            GrammarItem::Text(v) => if group_started {
-                v.replacen("*", "", 1)
-            } else {
-                v
-            },
+            GrammarItem::Text(v) => {
+                if group_started {
+                    v.replacen('*', "", 1)
+                } else {
+                    v
+                }
+            }
             // See <https://stackoverflow.com/a/40354789>
             GrammarItem::GroupStart => {
                 group_started = true;
                 String::from("# ")
-            },
+            }
             GrammarItem::GroupEnd => {
                 group_started = false;
-                continue
-            },
+                continue;
+            }
         };
     }
 
@@ -86,17 +88,15 @@ fn generate_notation(
                 str += &if let Some(param) = param {
                     if meta.is_empty() {
                         format!("* `{param}` -")
+                    } else if let Some(second) = meta.get(1) {
+                        format!(
+                            "* `{}` (direction {}, {}) -",
+                            param,
+                            meta.get(0).unwrap(),
+                            second
+                        )
                     } else {
-                        if let Some(second) = meta.get(1) {
-                            format!(
-                                "* `{}` (direction {}, {}) -",
-                                param,
-                                meta.get(0).unwrap(),
-                                second
-                            )
-                        } else {
-                            format!("* `{}` (direction {}) -", param, meta.get(0).unwrap())
-                        }
+                        format!("* `{}` (direction {}) -", param, meta.get(0).unwrap())
                     }
                 } else {
                     String::new()

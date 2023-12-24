@@ -26,9 +26,7 @@ pub(crate) enum GrammarItem {
 
 pub(crate) fn parse(input: String) -> Result<Vec<GrammarItem>, ParseError> {
     let mut lexed = lex(input);
-    lexed.push(LexItem::Space);
-    lexed.push(LexItem::Space);
-    lexed.push(LexItem::Space);
+    lexed.extend_from_slice(&[LexItem::Space, LexItem::Space, LexItem::Space]);
     parse_items(lexed)
 }
 
@@ -37,7 +35,7 @@ fn parse_items(input: Vec<LexItem>) -> Result<Vec<GrammarItem>, ParseError> {
     let mut param_iter_skip_count = 0;
 
     for item in input.windows(4) {
-        let current = item.get(0).unwrap();
+        let current = &item[0];
         let next = item.get(1);
 
         match current {
@@ -51,7 +49,7 @@ fn parse_items(input: Vec<LexItem>) -> Result<Vec<GrammarItem>, ParseError> {
                                 return Err(ParseError::UnexpectedInput {
                                     found: v.to_string(),
                                     expected: vec![OPEN_PAREN.into(), CLOSED_PAREN.into()],
-                                })
+                                });
                             }
                         },
                         LexItem::Word(v) => {
@@ -60,23 +58,20 @@ fn parse_items(input: Vec<LexItem>) -> Result<Vec<GrammarItem>, ParseError> {
                             let content;
 
                             if v.starts_with("param") {
-                                let value = v.split('[').collect::<Vec<_>>();
-                                match value.get(1) {
-                                    Some(&"in]") => meta.push("in".into()),
-                                    Some(&"out]") => meta.push("out".into()),
-                                    Some(&"in,out]") | Some(&"out,in]") => {
-                                        meta.push("in".into());
-                                        meta.push("out".into());
-                                    }
-                                    _ => match value.get(1) {
-                                        None => {}
-                                        Some(v) => {
+                                if let Some(value) = v.split('[').nth(1) {
+                                    match value {
+                                        "in]" => meta.push("in".into()),
+                                        "out]" => meta.push("out".into()),
+                                        "in,out]" | "out,in]" => {
+                                            meta.extend_from_slice(&["in".into(), "out".into()]);
+                                        }
+                                        v => {
                                             return Err(ParseError::UnexpectedInput {
                                                 found: v.to_string(),
                                                 expected: vec!["in]".into(), "out]".into()],
-                                            })
+                                            });
                                         }
-                                    },
+                                    }
                                 }
 
                                 params = match item.get(3) {
@@ -174,7 +169,7 @@ mod test {
                     params: vec![],
                     tag: "name".into(),
                 },
-                GrammarItem::Text("Memory Management".into())
+                GrammarItem::Text("Memory Management".into()),
             ]
         );
     }
@@ -190,7 +185,7 @@ mod test {
                     params: vec![],
                     tag: "note".into(),
                 },
-                GrammarItem::Text("hoge_t = {a, b, c}".into())
+                GrammarItem::Text("hoge_t = {a, b, c}".into()),
             ]
         );
     }
@@ -207,7 +202,7 @@ mod test {
                     params: vec!["random".into()],
                     tag: "param".into(),
                 },
-                GrammarItem::Text(" This is, without a doubt, a random argument.".into())
+                GrammarItem::Text(" This is, without a doubt, a random argument.".into()),
             ]
         );
     }
@@ -226,14 +221,18 @@ mod test {
                     tag: "name".into(),
                 },
                 GrammarItem::Text("Memory Management\n".into()),
-                GrammarItem::GroupEnd
+                GrammarItem::GroupEnd,
             ]
         );
     }
 
     #[test]
     pub fn trims_param_texts() {
-        let result = parse("@param[in]           var                                         Example description".into()).unwrap();
+        let result = parse(
+            "@param[in]           var                                         Example description"
+                .into(),
+        )
+        .unwrap();
         assert_eq!(
             result,
             vec![
@@ -242,7 +241,7 @@ mod test {
                     params: vec!["var".into()],
                     tag: "param".into(),
                 },
-                GrammarItem::Text(" Example description".into())
+                GrammarItem::Text(" Example description".into()),
             ]
         )
     }
